@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#07060c" />
+<meta name="color-scheme" content="dark" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;560;650&display=swap" rel="stylesheet" />
+<title>gpt-bridge control</title>
+<style>
+/* visual-system-desk-phone focus-touch-gold */
+:root {
+  color-scheme: dark;
+  --bg: #07060c;
+  --ink: #f7f1e6;
+  --muted: #c9bba6;
+  --gold: #e0b15a;
+  --gold-2: #ffe3a3;
+  --violet: #7a4dff;
+  --panel: rgba(16, 13, 22, 0.92);
+  --well: #120f16;
+  --line: rgba(224, 177, 90, 0.34);
+  --ok: #d5e7b4;
+  --bad: #ffc2b4;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(122, 77, 255, 0.28), transparent 60%),
+    linear-gradient(180deg, rgba(7, 6, 12, 0.72), rgba(7, 6, 12, 0.92)),
+    url("/brand/hero-bg.jpg") center top / cover no-repeat,
+    #07060c;
+  color: var(--ink);
+  font-family: Outfit, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.app { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  padding: 28px 18px;
+  background: rgba(8, 7, 12, 0.92);
+  border-right: 1px solid var(--line);
+  box-shadow: inset -18px 0 40px rgba(122, 77, 255, 0.08);
+}
+.brand { display: flex; gap: 14px; align-items: center; margin: 0 6px 28px; }
+.brand img { width: 56px; height: 56px; border-radius: 16px; object-fit: cover; box-shadow: 0 12px 28px rgba(122, 77, 255, 0.35); }
+.brand strong { display: block; font-family: Fraunces, Georgia, serif; font-size: 22px; letter-spacing: -0.04em; }
+.brand span { color: var(--gold); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+.owner { margin: -12px 6px 22px; color: var(--gold-2); font-size: 14px; }
+.nav { display: grid; gap: 8px; }
+.nav button {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 58px;
+  padding: 8px 10px;
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.nav button span { display: grid; }
+.nav small { color: var(--muted); font-size: 12px; letter-spacing: 0.02em; }
+.nav svg {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(224, 177, 90, 0.12);
+  stroke: var(--gold);
+  fill: none;
+  stroke-width: 1.8;
+}
+.nav button.on, .nav button:hover {
+  background: linear-gradient(180deg, rgba(224, 177, 90, 0.16), rgba(122, 77, 255, 0.12));
+  border-color: var(--line);
+}
+.nav button.on svg { background: var(--gold); stroke: #1a120b; }
+.workspace { min-width: 0; }
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  padding: 16px 28px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(7, 6, 12, 0.88);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+}
+.topbar h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 560; letter-spacing: -0.04em; }
+#nav-toggle { display: none; }
+.pill {
+  margin-left: auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.pill.ok { color: var(--ok); background: #1c2b1e; }
+.pill.bad { color: var(--bad); background: #3b211c; }
+.panel { display: none; max-width: 920px; margin: 0 auto; padding: 36px 32px 80px; }
+.panel.on { display: block; }
+.panel h2 {
+  margin: 0 0 18px;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 48px;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  font-weight: 560;
+}
+.guide, .controls {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 24px;
+  margin: 18px 0;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.28);
+}
+.guide h3 {
+  margin: 22px 0 8px;
+  color: var(--gold-2);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.guide h3:first-child { margin-top: 0; }
+.guide p, .controls p, li { color: var(--muted); font-size: 16px; line-height: 1.65; }
+.guide ol, .guide ul { margin: 8px 0 0; padding-left: 22px; }
+.guide li { margin: 8px 0; }
+label { display: block; margin: 18px 0 8px; color: var(--gold-2); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+input, textarea, button, pre {
+  font: inherit;
+  border-radius: 14px;
+  border: 1px solid rgba(247, 241, 230, 0.14);
+  background: var(--well);
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}
+input, textarea { min-height: 52px; padding: 14px 16px; flex: 1; min-width: 0; }
+.panel button, .controls button, #nav-toggle {
+  min-height: 48px;
+  padding: 12px 16px;
+  background: #2a2433;
+  color: var(--ink);
+  cursor: pointer;
+}
+#recheck, #save, #prove, #write-kimi, #verify {
+  background: linear-gradient(180deg, var(--gold-2), var(--gold));
+  color: #1a120b;
+  -webkit-text-fill-color: #1a120b;
+  border-color: transparent;
+  font-weight: 650;
+}
+button.danger { color: var(--bad); background: #3b211c; -webkit-text-fill-color: var(--bad); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.stat { background: var(--well); border: 1px solid rgba(247, 241, 230, 0.08); border-radius: 16px; padding: 14px 16px; }
+.stat b { display: block; margin-bottom: 8px; color: var(--muted); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.stat span { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 15px; }
+.big, pre {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 15px;
+  padding: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #0c0a10;
+}
+.login-banner { font-family: Fraunces, Georgia, serif; font-size: 32px; line-height: 1.1; padding: 18px 20px; border-radius: 18px; }
+.login-banner.ok, .ok { color: var(--ok); background: #1c2b1e; }
+.login-banner.bad, .bad { color: #ffd8cf; background: #3b211c; }
+#next-step { color: var(--ink); font-size: 18px; }
+#secret-warning, #failure-banner { padding: 14px 16px; border-radius: 16px; }
+a { color: var(--gold-2); }
+@media (max-width: 860px) {
+  .app { display: block; }
+  #nav-toggle { display: inline-flex; align-items: center; }
+  .topbar { padding: 12px 14px; min-height: 64px; }
+  .topbar h1 { font-size: 22px; }
+  .sidebar {
+    position: fixed;
+    z-index: 6;
+    width: min(86vw, 320px);
+    transform: translateX(-108%);
+    transition: transform 0.18s ease;
+    box-shadow: 24px 0 60px rgba(0, 0, 0, 0.45);
+  }
+  .sidebar.open { transform: none; }
+  .panel { padding: 22px 14px 56px; }
+  .panel h2 { font-size: 36px; }
+  .guide, .controls { padding: 16px; border-radius: 18px; }
+  .grid, .row { display: grid; grid-template-columns: 1fr; }
+  .panel button, .controls button, input, textarea { width: 100%; }
+}
+
+button, input, textarea, a {
+  min-height: 48px;
+  min-width: 48px;
+}
+a { display: inline-flex; align-items: center; }
+button:focus, button:focus-visible, input:focus, input:focus-visible, textarea:focus, textarea:focus-visible, a:focus, a:focus-visible {
+  outline: 3px solid #07060c;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px #ffe3a3;
+}
+#recheck, #save, #prove, #write-kimi, #verify {
+  background: #efca7c;
+  color: #1a120b;
+  -webkit-text-fill-color: #1a120b;
+}
+</style>
+</head>
+<body class="visual-system">
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <img src="/brand/logo-mark.jpg" alt="" />
+    <div><strong>gpt-bridge</strong><span>Local control</span></div>
+  </div>
+  <p class="owner">Owner: Adrian. Adrian is the sole owner of this bridge.</p>
+  <nav class="nav" aria-label="Sections">
+    <button type="button" class="on" data-panel="getting-started"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg><span>Getting Started<small>First run</small></span></button>
+    <button type="button" data-panel="connection"><svg viewBox="0 0 24 24"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Connection<small>Reach and status</small></span></button>
+    <button type="button" data-panel="accounts-section"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c1-3 3-4 6-4s5 1 6 4M17 8h4M19 6v4"/></svg><span>Accounts<small>Labels only</small></span></button>
+    <button type="button" data-panel="actions"><svg viewBox="0 0 24 24"><path d="M5 5h14v14H5zM9 9h6v6H9z"/></svg><span>Browser Actions<small>Window controls</small></span></button>
+    <button type="button" data-panel="models-section"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span>Models<small>Menu names</small></span></button>
+    <button type="button" data-panel="telegram-section"><svg viewBox="0 0 24 24"><path d="M4 12l16-7-5 16-3-6-8-3z"/></svg><span>Telegram<small>Optional alerts</small></span></button>
+    <button type="button" data-panel="api-reference"><svg viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14"/></svg><span>API Reference<small>Three values</small></span></button>
+    <button type="button" data-panel="logs"><svg viewBox="0 0 24 24"><path d="M6 4h12v16H6zM9 8h6M9 12h6M9 16h4"/></svg><span>Logs<small>Last lines</small></span></button>
+  </nav>
+</aside>
+<div class="workspace">
+<header class="topbar">
+  <button id="nav-toggle" type="button">Menu</button>
+  <h1>Operator console</h1>
+  <p id="mast-state" class="pill bad">Waiting for the bridge</p>
+</header>
+<main>
+<section id="getting-started" class="panel on">
+  <h2>Getting Started</h2>
+  <p id="login-banner" class="login-banner bad">ChatGPT Not Logged In – Action Required</p>
+  <p id="next-step">Checking the bridge. If this stays here, the bridge is not reachable yet.</p>
+  <p id="secret-warning" class="bad">Do not start a tunnel until GPT_BRIDGE_INTERNAL_SECRET is set. Without it, the tunnel URL plus the word local is an open door.</p>
+  <p id="failure-banner" class="bad" hidden></p>
+  <div class="row"><button id="recheck" type="button">I have signed in</button></div>
+  <div class="guide">
+    <h3>What this page is</h3>
+    <p>This is the control page for a local bridge. The bridge is a small program on a computer with a screen. It opens one Chromium window on the ChatGPT website and turns that window into a local API. A client such as Kimi Code can then send a normal chat request to that computer. This page does not store your ChatGPT password. It only sends commands to the program.</p>
+    <h3>Do these now, in order</h3>
+    <ol>
+      <li>Do not clone GitHub. The repo is private. On your computer, which must have a screen, download the snapshot, enter the folder, and run make night-check. On Windows, use Git Bash. If make is missing, run bash scripts/night-check.sh.</li>
+      <li>Sign in yourself when the Chromium window opens. Do not press Enter yet. Wait until the terminal prints Logged in. Then press Enter once. Do not type the password on this page.</li>
+      <li>Wait for NIGHT-CHECK PASSED. Open http://127.0.0.1:8000/dashboard on that same computer. The public page cannot press these buttons.</li>
+      <li>Paste the secret the script printed into Internal secret and click Save. Account, chat, and model buttons stay hidden until that save succeeds, because those routes return 401 missing internal secret.</li>
+      <li>Click I have signed in. The banner should say ChatGPT Logged In. The open account button is Adrian (open). Chat titles appear as switch buttons. Model names appear as pick buttons.</li>
+      <li>Confirm the secret works before any tunnel. The command is curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8000/v1/debug/break -H "Authorization: Bearer local"</li>
+      <li>It must print 401. If it does not, stop. Do not start a tunnel.</li>
+      <li>Write the Kimi config: python -m gpt_bridge kimi</li>
+      <li>Leave the night-check server running. make watch attaches to that server if it is already up. It does not start a second copy.</li>
+    </ol>
+    <p id="download-command">Do not clone. If this folder already contains Makefile and scripts/dashboard_audit.py, you already have this copy. Run bash scripts/night-check.sh, then bash scripts/dashboard-audit.sh. On a new computer, run: mkdir -p gpt-bridge &amp;&amp; cd gpt-bridge &amp;&amp; curl -fL "https://files.manuscdn.com/user_upload_by_module/session_file/310519664075273319/kXDaTUKfPmRwYMcr.tgz" -o gpt-bridge-pc.tgz &amp;&amp; tar -xzf gpt-bridge-pc.tgz &amp;&amp; rm gpt-bridge-pc.tgz</p>
+    <h3>What make night-check does</h3>
+    <p>It installs the Python packages, downloads Chromium for Playwright, and creates a control secret in a local .env file if one is missing. It then opens a headed window, which means a real visible browser window, and waits while you sign in. You press Enter only after you can type in the ChatGPT message box. It sends one proof request that should contain the word pong. It starts the server, checks that health says you are signed in, marks the current chat as broken, and sends one more request. That next request must switch chats by itself and leave the forced-broken flag false. If any step fails, the script stops and names that step.</p>
+    <h3>Why the window exists, and why you type the password</h3>
+    <p>A paid ChatGPT account is used through the website, not through a key from platform.openai.com. The bridge drives that website. The window has to be visible so you can sign in and so the page can render. You type the password into ChatGPT’s own login page. The bridge never asks for it, never stores it, and this page has no password field.</p>
+    <h3>What the secret is for, and when a tunnel is safe</h3>
+    <p>The word local is the client key. It is not a secret from OpenAI. The internal secret is a second lock for control buttons such as force break and account switch. Completions still use the word local, because a client cannot send the extra header. A tunnel is a public web address that forwards to this computer. It is safe to start only after the curl command prints 401. That proves a control route without the secret header is rejected. The computer must stay on. Do not share the tunnel address.</p>
+    <h3>From zero to a working Kimi Code call</h3>
+    <p>Do not clone. Download the snapshot, run make night-check, sign in, wait for the pong proof, paste the printed secret into Internal secret, click Save, then confirm 401. python -m gpt_bridge kimi writes three values into the Kimi settings file on the computer running the server: base http://127.0.0.1:8000/v1, key local, and model gpt-subscription. Other providers already in that file stay. If the server from night-check is still running, leave it. make watch does not start a second copy.</p>
+    <h3>Optional, later</h3>
+    <ul>
+      <li>Create a Telegram bot with BotFather, then paste the token on the Telegram section.</li>
+      <li>Run the API Anything probe if you want a read-only list of candidate requests. It does not call them.</li>
+      <li>Artemis stays blocked until adb devices shows a real device. Do not start it beside this server.</li>
+    </ul>
+  </div>
+</section>
+<section id="connection" class="panel" hidden>
+  <h2>1. Connection</h2>
+  <div class="guide">
+    <p>Use this section to see whether this page can talk to the bridge, and whether ChatGPT is signed in. Reachable means this page received an answer from the bridge program. It does not by itself mean ChatGPT is signed in. Logged in means the visible window has a usable message box. If this page is on the public web and the Bridge URL is still 127.0.0.1, the buttons cannot work. A public page cannot call your computer’s private address. Paste a tunnel address, or open http://127.0.0.1:8000/dashboard on the same computer that runs the bridge.</p>
+    <p>Bridge URL is the address this page calls. Save stores it in this browser only. The internal secret field is only for the extra lock. Leave it empty until the secret has been created. Paste the same value that night-check printed once. Do not put that value in a chat, a screenshot, or a public page.</p>
+    <p>Bridge reachable is yes only after a successful poll. Logged in is the sign-in flag from the bridge. Forced broken is true only while the current chat has been marked and has not yet been replaced. Health time is the clock time on the last health answer. Browser names the driver, usually Playwright Chromium, or down when the poll fails. Healthy means the current chat can take a send. Chat is the address of the open conversation. Poll is how recently this page asked for status. It asks again every five seconds. If reachable stays no, the program is not running, the URL is wrong, or a public page is trying to call 127.0.0.1.</p>
+  </div>
+  <div class="controls">
+    <label for="bridge">Bridge URL</label>
+    <div class="row"><input id="bridge" value="http://127.0.0.1:8000" /><button id="save" type="button">Save</button></div>
+    <label for="secret">Internal secret, only if GPT_BRIDGE_INTERNAL_SECRET is set</label>
+    <input id="secret" placeholder="leave empty when the secret is unset" />
+    <div class="grid">
+      <div class="stat"><b>Bridge reachable</b><span id="reachable">—</span></div>
+      <div class="stat"><b>Logged in</b><span id="logged-in">—</span></div>
+      <div class="stat"><b>Forced broken</b><span id="broken">—</span></div>
+      <div class="stat"><b>Health time</b><span id="stamp">—</span></div>
+      <div class="stat"><b>Browser</b><span id="browser">—</span></div>
+      <div class="stat"><b>Healthy</b><span id="healthy">—</span></div>
+    </div>
+    <p id="chat">Chat: —</p>
+    <p id="poll-age">Last poll: —</p>
+    <p id="reach">Checking whether this page can reach the bridge.</p>
+    <p id="proof">Waiting for the first poll.</p>
+  </div>
+</section>
+<section id="accounts-section" class="panel" hidden>
+  <h2>2. Accounts</h2>
+  <div class="guide">
+    <p>An account here is a label you choose, such as work, plus a folder on the computer that stores that login’s cookies. The registry file stores the label only. Passwords are never stored. You type a password only in the ChatGPT window. The API never receives it, and this page has no password field.</p>
+    <p>Add account creates the label and the folder. It does not sign you in. After you add a label, use that account, then sign in in the window that opens. Use account switches the open folder. If a completion is already being sent, the switch is refused with HTTP 409. That means the current send must finish before the window may change accounts. A click cannot cut across a send.</p>
+    <p>The chat buttons under the account use the same switch path as the API. A failed send also switches chats by itself, up to two tries, so you do not press retry for that case.</p>
+  </div>
+  <div class="controls">
+    <div class="row"><input id="account-label" placeholder="work" /><button id="add-account" type="button">Add account</button></div>
+    <div id="accounts" class="row"></div>
+    <p id="account-status">No account open.</p>
+    <div id="account-chats" class="row"></div>
+    <div class="row"><input id="chat-url" placeholder="https://chatgpt.com/c/..." /><button id="switch" type="button">Chat switch</button><button id="list" type="button">List chats</button></div>
+    <pre id="chats">No chat list yet.</pre>
+  </div>
+</section>
+<section id="actions" class="panel" hidden>
+  <h2>3. Browser Actions</h2>
+  <div class="guide">
+    <p>Login opens the visible window and waits until the message box is usable. You sign in there. Logout clears the saved cookies for the open account so you can sign in as someone else. Restart browser closes the window and opens it again with the same saved login. It does not type a password.</p>
+    <p>Force break marks the chat. It does not switch chats by itself. The next send sees the mark, writes the line “active chat unhealthy before send”, switches to another chat, and then answers. After that switch, forced broken goes back to false. Mark means “this chat should not be used.” Rotate means “leave this chat and open another.” Send pong sends one completion whose request text asks for the single word pong. Use it as a proof that the signed-in window answered. New chat opens a fresh conversation in the same account.</p>
+  </div>
+  <div class="controls">
+    <p>Force break marks the chat. The next send rotates it.</p>
+    <div class="row">
+      <button id="login" type="button">Login</button>
+      <button id="logout" class="danger" type="button">Logout</button>
+      <button id="restart" type="button">Restart browser</button>
+      <button id="break" class="danger" type="button">Force break</button>
+      <button id="prove" type="button">Send pong</button>
+      <button id="new-chat" type="button">New chat</button>
+    </div>
+    <pre id="prove-out">Not sent.</pre>
+  </div>
+</section>
+<section id="models-section" class="panel" hidden>
+  <h2>4. Models</h2>
+  <div class="guide">
+    <p>The list is not a catalog stored in this project. See models asks Playwright, the tool that drives the browser, to read the model menu in the open ChatGPT window. You only see names that menu is showing for the signed-in account. If the window is not signed in, the list can be empty. Choosing a name clicks that menu item. After the bridge switches chats by itself, it applies the same choice again so the new chat does not fall back to a different model.</p>
+  </div>
+  <div class="controls">
+    <p id="model-current">Current: unknown</p>
+    <div class="row"><button id="see-models" type="button">See models</button></div>
+    <div id="models" class="row"></div>
+  </div>
+</section>
+<section id="telegram-section" class="panel" hidden>
+  <h2>5. Telegram</h2>
+  <div class="guide">
+    <p>This is optional. It sends a phone message when a sign-in is needed or when a chat is marked broken. Those messages can include three buttons: Restart browser, Force break, and Open dashboard. No token exists until you create one.</p>
+    <p>In Telegram, open BotFather and send /newbot. BotFather replies with a token. Paste that token here and click Verify token. The bridge checks it with Telegram and stores it in a local file, data/telegram.json, which is not committed to GitHub. The token never appears in this page’s source. Then open the bot chat, press Start, and click Poll now. Status should then say connected. Until you press Start, the bot is verified but has no chat to write to.</p>
+  </div>
+  <div class="controls">
+    <input id="token" type="password" autocomplete="off" />
+    <div class="row"><button id="verify" type="button">Verify token</button><button id="poll-telegram" type="button">Poll now</button></div>
+    <p id="telegram">Not linked.</p>
+  </div>
+</section>
+<section id="api-reference" class="panel" hidden>
+  <h2>6. API Reference</h2>
+  <div class="guide">
+    <p>A client needs three values. The base URL is where requests go. On the same computer it is http://127.0.0.1:8000/v1. The key is the word local. It is not a key from platform.openai.com, and it does not bill an OpenAI API account. The model name is gpt-subscription. That name tells the bridge to use the signed-in ChatGPT window. It is not a model id from the public API catalog.</p>
+    <p>Kimi Code uses the base as the provider address, the word local as the key, and gpt-subscription as the model. Write Kimi config writes those three lines into ~/.kimi-code/config.toml on the computer running the server. It leaves other providers in that file alone. The live base below follows the saved Bridge URL, so a tunnel address can be copied after you paste one. Do not share a tunnel address. Anyone who has it can send requests through the signed-in window, because the key is still the word local.</p>
+  </div>
+  <div class="controls">
+    <p>Base URL</p>
+    <p id="openai-base" class="big">http://127.0.0.1:8000/v1</p>
+    <p>API key</p>
+    <p id="openai-key" class="big">local</p>
+    <p>Model</p>
+    <p id="model-value" class="big">gpt-subscription</p>
+    <div class="row">
+      <button id="copy-openai-base" type="button">Copy base URL</button>
+      <button id="copy-openai-key" type="button">Copy API key</button>
+      <button id="copy-model" type="button">Copy model</button>
+      <button id="write-kimi" type="button">Write Kimi config</button>
+    </div>
+    <label>Live API base, from the saved Bridge URL</label>
+    <div class="row"><input id="base" readonly /><button id="copy-base" type="button">Copy live base</button></div>
+    <label>API key</label>
+    <div class="row"><input id="key" value="local" readonly /><button id="copy-key" type="button">Copy key</button></div>
+  </div>
+</section>
+<section id="logs" class="panel" hidden>
+  <h2>7. Logs</h2>
+  <div class="guide">
+    <p>bridge.log is the running record on the computer, in logs/bridge.log. This panel shows only the last twenty lines. They refresh every five seconds, on the same poll as the status rows. A token-shaped string is redacted before it is shown.</p>
+    <p>rotations.jsonl is one JSON record per chat switch. A rotation record has a time, a reason, and the chat address that became active. The reason says why the switch happened, such as a failed send or a marked chat. If the tail is empty, either the server has not written a log yet, or this page cannot reach the computer. A 502 or 503 in the last payload should include a reason and an error code. login_required means the window needs a sign-in. chat_failure means the send itself failed.</p>
+  </div>
+  <div class="controls">
+    <p>logs/bridge.log</p>
+    <pre id="bridge-log">none</pre>
+    <p>logs/rotations.jsonl</p>
+    <pre id="rotation-log">none</pre>
+    <p>Rotation records</p>
+    <pre id="rotations">none</pre>
+    <p>Last payload</p>
+    <pre id="raw">none</pre>
+  </div>
+</section>
+</main>
+</div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const store = localStorage;
+$("bridge").value = store.getItem("gpt_bridge_url") || "http://127.0.0.1:8000";
+$("secret").value = store.getItem("gpt_bridge_secret") || "";
+$("token").value = store.getItem("gpt_bridge_token") || "";
+
+function base() { return $("bridge").value.trim().replace(/\/$/, ""); }
+function showBase() { $("base").value = base() + "/v1"; }
+function headers() {
+  const out = { "Authorization": "Bearer local", "Content-Type": "application/json" };
+  if ($("secret").value.trim()) out["X-GPT-Bridge-Secret"] = $("secret").value.trim();
+  return out;
+}
+function localhostTarget() {
+  try {
+    const host = new URL(base()).hostname;
+    return host === "127.0.0.1" || host === "localhost" || host === "::1";
+  } catch (err) {
+    return false;
+  }
+}
+function pageIsLocal() {
+  return location.hostname === "127.0.0.1" || location.hostname === "localhost";
+}
+function paintReach() {
+  showBase();
+  $("openai-base").textContent = "http://127.0.0.1:8000/v1";
+  $("openai-key").textContent = "local";
+  if (!pageIsLocal() && localhostTarget()) {
+    $("reach").textContent = "This page is on the public web. It cannot call 127.0.0.1. Paste the tunnel https URL into Bridge URL, or use the buttons from http://127.0.0.1:8000/dashboard. Do not share that URL.";
+    return;
+  }
+  $("reach").textContent = "This page will call " + base() + " with Bearer local. Health does not need the key. Control routes do.";
+}
+function paintLogs(data) {
+  const logs = (data && data.logs) || {};
+  const bridge = logs.bridge || [];
+  const rotations = logs.rotations || [];
+  $("bridge-log").textContent = bridge.length ? bridge.join("\n") : "none";
+  $("rotation-log").textContent = rotations.length ? rotations.join("\n") : "none";
+}
+function setGuide(mode) {
+  const banner = $("login-banner");
+  if (mode === "in") {
+    banner.textContent = "ChatGPT Logged In";
+    banner.className = "login-banner ok";
+    $("next-step").textContent = "The bridge is running and ChatGPT is signed in. Next, copy the three API Reference values. A tunnel and Telegram are optional.";
+    paintMast("Live", "ok");
+    return;
+  }
+  banner.textContent = "ChatGPT Not Logged In – Action Required";
+  banner.className = "login-banner bad";
+  if (mode === "down") {
+    $("next-step").textContent = "The bridge is not reachable. On the computer with a screen, open the gpt-bridge folder and run make night-check. Sign in yourself in the window. Leave that terminal open. If this page is on the public web, paste the tunnel https URL into Bridge URL, or open http://127.0.0.1:8000/dashboard on that same computer. Then click I have signed in.";
+    paintMast("Bridge down", "bad");
+    return;
+  }
+  $("next-step").textContent = "The bridge is running, but ChatGPT is not signed in. On the computer with a screen, run make night-check, or python -m gpt_bridge login. Sign in yourself in the window. Then click I have signed in. Do not type the password on this page.";
+  paintMast("Sign-in required", "bad");
+}
+function paintMast(text, mode) {
+  const chip = $("mast-state");
+  if (!chip) return;
+  chip.textContent = text;
+  chip.className = "pill " + mode;
+}
+async function call(path, options) {
+  const response = await fetch(base() + path, { ...options, headers: headers() });
+  const text = await response.text();
+  let body = {};
+  try { body = text ? JSON.parse(text) : {}; } catch (err) { body = { detail: text }; }
+  $("raw").textContent = path + " " + response.status + "\n" + JSON.stringify(body, null, 2);
+  if (!response.ok) throw new Error(body.detail || String(response.status));
+  return body;
+}
+function paint(data) {
+  const health = data.health || {};
+  const session = data.session || {};
+  $("reachable").textContent = "yes";
+  $("reachable").className = "ok";
+  $("browser").textContent = health.browser || session.browser || "—";
+  const logged = session.logged_in === true;
+  $("logged-in").textContent = String(session.logged_in);
+  $("logged-in").className = logged ? "ok" : "bad";
+  $("broken").textContent = String(health.forced_broken);
+  $("healthy").textContent = String(health.healthy);
+  $("healthy").className = health.healthy ? "ok" : "bad";
+  $("stamp").textContent = health.timestamp || data.timestamp || "—";
+  $("poll-age").textContent = "Last poll: just now";
+  $("chat").textContent = "Chat: " + (session.chat_url || "none");
+  $("proof").textContent = logged
+    ? "GET /dashboard-data shows logged_in true."
+    : "GET /dashboard-data shows logged_in false. Sign in in the browser window, then press Login.";
+  setGuide(logged ? "in" : "out");
+  const rows = data.rotations || [];
+  $("rotations").textContent = rows.length
+    ? rows.map((row) => (row.ts || "") + "  " + (row.reason || "") + "  " + (row.url || "")).join("\n")
+    : "none";
+  paintLogs(data);
+  paintFailures(data);
+  paintSecret(data.health || {});
+}
+function paintFailures(data) {
+  const failures = (data && data.failures) || {};
+  const banner = $("failure-banner");
+  if (!failures.count) {
+    banner.hidden = true;
+    banner.textContent = "";
+    return;
+  }
+  banner.hidden = false;
+  const newest = (failures.latest || [])[0] || "unknown";
+  banner.textContent = "Selector breakage: " + failures.count + " file(s) in logs/failures. Newest: " + newest + ". The page no longer matches the selector lists. Edit them. Do not add a stealth layer.";
+}
+function paintSecret(health) {
+  const line = $("secret-warning");
+  if (health.internal_secret_set) {
+    line.className = "ok";
+    line.textContent = "Control secret is set. Paste the same value into Internal secret before a tunnel. A control route without X-GPT-Bridge-Secret is rejected.";
+    return;
+  }
+  line.className = "bad";
+  line.textContent = "Do not start a tunnel. GPT_BRIDGE_INTERNAL_SECRET is not set, so anyone who can reach the port can use the key local. Run make night-check or python -m gpt_bridge secret first.";
+}
+function paintTelegram(body) {
+  if (!body || !body.configured) {
+    $("telegram").textContent = "Not linked.";
+    return;
+  }
+  $("telegram").textContent = "";
+  const line = document.createElement("span");
+  line.textContent = body.connected
+    ? "@" + (body.username || "bot") + " connected. Chat ID " + body.chat_id + "."
+    : "@" + (body.username || "bot") + " verified. Press Start, then Poll now.";
+  $("telegram").appendChild(line);
+  if (body.start_url) {
+    const link = document.createElement("a");
+    link.href = body.start_url;
+    link.textContent = " " + body.start_url;
+    $("telegram").appendChild(link);
+  }
+  if (body.chat_id) store.setItem("gpt_bridge_chat_id", String(body.chat_id));
+}
+let misses = 0;
+let controlsLoaded = false;
+function explainSecret(err) {
+  const message = err && err.message ? err.message : String(err || "");
+  if (!message.includes("missing internal secret")) return false;
+  $("reachable").textContent = "yes";
+  $("reachable").className = "ok";
+  $("browser").textContent = "up";
+  $("proof").textContent = "The bridge answered 401 missing internal secret. Paste the value night-check printed into Internal secret and click Save.";
+  $("next-step").textContent = "The bridge is running. Paste the control secret into Internal secret and click Save. Account, chat, and model buttons appear after that save.";
+  $("account-status").textContent = "Hidden until Internal secret is saved.";
+  $("models").textContent = "Hidden until Internal secret is saved.";
+  paintMast("Secret required", "bad");
+  return true;
+}
+function refreshControls() {
+  if (!$("secret").value.trim()) return;
+  loadAccounts();
+  if (controlsLoaded) return;
+  controlsLoaded = true;
+  call("/v1/browser-models").then(paintModels).catch((err) => {
+    controlsLoaded = false;
+    if (!explainSecret(err)) show(err);
+  });
+}
+async function poll() {
+  paintReach();
+  try {
+    const data = await call("/dashboard-data");
+    misses = 0;
+    paint(data);
+    if ($("secret").value.trim()) refreshControls();
+    try { paintTelegram(await call("/v1/telegram/status")); } catch (err) { $("telegram").textContent = err.message; }
+  } catch (err) {
+    if (explainSecret(err)) return;
+    misses += 1;
+    $("reachable").textContent = "no";
+    $("reachable").className = "bad";
+    $("proof").textContent = "Poll failed: " + err.message;
+    $("browser").textContent = "down";
+    $("logged-in").textContent = "unknown";
+    $("logged-in").className = "bad";
+    setGuide("down");
+    if (misses === 2) notifyDown(err.message);
+  }
+}
+async function notifyDown(reason) {
+  const token = store.getItem("gpt_bridge_token");
+  const chat = store.getItem("gpt_bridge_chat_id");
+  if (!token || !chat) return;
+  await fetch("https://api.telegram.org/bot" + encodeURIComponent(token) + "/sendMessage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chat, text: "bridge down: " + reason })
+  });
+}
+function save() {
+  store.setItem("gpt_bridge_url", $("bridge").value.trim());
+  store.setItem("gpt_bridge_secret", $("secret").value.trim());
+  controlsLoaded = false;
+  paintReach();
+  poll();
+}
+function show(err) { $("proof").textContent = err.message || String(err); }
+function run(path, options) {
+  return call(path, options).then((body) => { $("proof").textContent = path + " ok"; return body; }).then(poll).catch(show);
+}
+$("save").onclick = save;
+$("recheck").onclick = () => poll();
+function paintAccountChats(body) {
+  const box = $("account-chats");
+  box.textContent = "";
+  const newer = document.createElement("button");
+  newer.type = "button";
+  newer.textContent = "New chat for this account";
+  newer.onclick = () => run("/v1/chats/new", { method: "POST" }).then(loadAccounts);
+  box.appendChild(newer);
+  for (const chat of (body && body.chats) || []) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = chat.title || "chat";
+    button.onclick = () => run("/v1/chats/switch", {
+      method: "POST",
+      body: JSON.stringify({ url: chat.url })
+    });
+    box.appendChild(button);
+  }
+  if (!((body && body.chats) || []).length) {
+    const note = document.createElement("p");
+    note.textContent = "No chat titles yet. Click List chats, or paste a chat URL and click Chat switch.";
+    box.appendChild(note);
+  }
+}
+function paintAccounts(body) {
+  const box = $("accounts");
+  box.textContent = "";
+  const accounts = body.accounts || [];
+  $("account-status").textContent = "Open: " + (body.active || "none");
+  if (!accounts.length) {
+    const note = document.createElement("p");
+    note.textContent = "No saved accounts yet.";
+    box.appendChild(note);
+    return;
+  }
+  for (const item of accounts) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = item.active ? item.label + " (open)" : item.label;
+    if (item.active) button.className = "on";
+    button.onclick = () => run("/v1/accounts/use", {
+      method: "POST",
+      body: JSON.stringify({ label: item.label })
+    }).then(loadAccounts);
+    box.appendChild(button);
+  }
+}
+function loadAccounts() {
+  return call("/v1/accounts").then(paintAccounts).then(() => call("/v1/chats")).then(paintAccountChats).catch((err) => {
+    if (!explainSecret(err)) show(err);
+  });
+}
+$("add-account").onclick = () => run("/v1/accounts/add", {
+  method: "POST",
+  body: JSON.stringify({ label: $("account-label").value.trim() })
+}).then(loadAccounts);
+$("login").onclick = () => run("/v1/session/login", { method: "POST" });
+$("logout").onclick = () => run("/v1/session/logout", { method: "POST" });
+$("restart").onclick = () => run("/v1/session/restart", { method: "POST" });
+$("break").onclick = () => run("/v1/debug/break", { method: "POST" });
+$("new-chat").onclick = () => run("/v1/chats/new", { method: "POST" });
+$("switch").onclick = () => run("/v1/chats/switch", { method: "POST", body: JSON.stringify({ url: $("chat-url").value.trim() }) });
+$("list").onclick = () => call("/v1/chats").then((body) => {
+  const chats = body.chats || [];
+  $("chats").textContent = chats.length ? chats.map((item) => (item.title || "chat") + "\n" + item.url).join("\n\n") : "No chats returned.";
+  $("proof").textContent = "GET /v1/chats ok";
+}).catch(show);
+function paintModels(body) {
+  const models = body.models || [];
+  $("model-current").textContent = "Current: " + (body.current || body.selected || "unknown");
+  $("models").textContent = "";
+  if (!models.length) {
+    const note = document.createElement("p");
+    note.textContent = body.reason || "No models in the menu yet.";
+    $("models").appendChild(note);
+    return;
+  }
+  for (const item of models) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = item.selected ? item.name + " (on)" : item.name;
+    button.onclick = () => run("/v1/browser-models/select", {
+      method: "POST",
+      body: JSON.stringify({ name: item.name })
+    }).then(() => { $("model-current").textContent = "Current: " + item.name; });
+    $("models").appendChild(button);
+  }
+}
+$("see-models").onclick = () => call("/v1/browser-models").then(paintModels).catch(show);
+$("prove").onclick = () => call("/v1/chat/completions", {
+  method: "POST",
+  body: JSON.stringify({ model: "gpt-subscription", messages: [{ role: "user", content: "Reply with the single word pong." }] })
+}).then((body) => {
+  const text = (((body.choices || [])[0] || {}).message || {}).content || JSON.stringify(body);
+  $("prove-out").textContent = text;
+  $("proof").textContent = "POST /v1/chat/completions returned a reply.";
+}).catch(show);
+$("copy-key").onclick = () => navigator.clipboard.writeText("local").then(() => { $("proof").textContent = "Copied key local"; });
+$("copy-base").onclick = () => navigator.clipboard.writeText(base() + "/v1").then(() => { $("proof").textContent = "Copied " + base() + "/v1"; });
+$("copy-openai-key").onclick = () => navigator.clipboard.writeText("local").then(() => { $("proof").textContent = "Copied API key local"; });
+$("copy-openai-base").onclick = () => navigator.clipboard.writeText("http://127.0.0.1:8000/v1").then(() => { $("proof").textContent = "Copied http://127.0.0.1:8000/v1"; });
+$("copy-model").onclick = () => navigator.clipboard.writeText("gpt-subscription").then(() => { $("proof").textContent = "Copied model gpt-subscription"; });
+$("write-kimi").onclick = () => call("/v1/kimi/install", { method: "POST" }).then((body) => {
+  $("proof").textContent = (body.written ? "Wrote " : "Already set ") + body.path;
+}).catch(show);
+$("verify").onclick = () => {
+  const token = $("token").value.trim();
+  store.setItem("gpt_bridge_token", token);
+  call("/v1/telegram/config", {
+    method: "POST",
+    body: JSON.stringify({ bot_token: token, dashboard_url: location.href })
+  }).then(paintTelegram).catch(show);
+};
+$("poll-telegram").onclick = () => call("/v1/telegram/poll", { method: "POST" }).then(paintTelegram).catch(show);
+paintReach();
+poll();
+loadAccounts();
+setInterval(poll, 5000);
+
+const panels = document.querySelectorAll(".panel");
+document.querySelectorAll("[data-panel]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const id = button.dataset.panel;
+    panels.forEach((panel) => {
+      const on = panel.id === id;
+      panel.classList.toggle("on", on);
+      panel.hidden = !on;
+    });
+    document.querySelectorAll("[data-panel]").forEach((item) => item.classList.toggle("on", item === button));
+    $("sidebar").classList.remove("open");
+  });
+});
+$("nav-toggle").onclick = () => $("sidebar").classList.toggle("open");
+</script>
+</body>
+</html>

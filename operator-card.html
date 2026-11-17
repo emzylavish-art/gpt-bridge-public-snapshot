@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>gpt-bridge stop card</title>
+<style>
+  :root {
+    --bg: #12161c;
+    --card: #1b212b;
+    --ink: #e7edf4;
+    --muted: #93a0b0;
+    --line: #2c3644;
+    --mono: "IBM Plex Mono", "ui-monospace", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+    --login: #e2a84a;
+    --selector: #e36b6b;
+    --break: #7eb0e0;
+    --retry: #d98a4a;
+    --bind: #8fbfa8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0c0f13; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    padding: 18px;
+  }
+  main {
+    width: 504px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 16px 12px;
+  }
+  header { margin-bottom: 12px; }
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    font-weight: 650;
+  }
+  .sub {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 6px 1fr;
+    gap: 10px;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 9px 10px 9px 0;
+    margin-bottom: 8px;
+  }
+  .rail { border-radius: 10px 0 0 10px; }
+  .login { background: var(--login); }
+  .selector { background: var(--selector); }
+  .break { background: var(--break); }
+  .retry { background: var(--retry); }
+  .bind { background: var(--bind); }
+  h2 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .field {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 6px;
+    margin-top: 3px;
+    align-items: start;
+  }
+  .k {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    padding-top: 2px;
+  }
+  .v {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .note {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+  footer {
+    color: var(--muted);
+    font-size: 10.5px;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>GPT-BRIDGE STOP CARD</h1>
+    <p class="sub">Search bridge.log for the message. HTTP is the completion response. /health is GET /health on this machine.</p>
+  </header>
+
+  <section class="row">
+    <div class="rail login"></div>
+    <div>
+      <h2>1 · Login</h2>
+      <div class="field"><div class="k">LOG</div><div class="v">INFO gpt_bridge.browser sign in in the browser window; waiting up to 600s</div></div>
+      <div class="field"><div class="k">HTTP</div><div class="v">503 {"detail":"timed out waiting for ChatGPT login"}</div></div>
+      <div class="field"><div class="k">HEALTH</div><div class="v">logged_in: false</div></div>
+      <p class="note">Also logged: INFO gpt_bridge.session browser is not logged in; waiting for you to sign in. Mid-send auth is 503 {"detail":"login required"}. Rotation does not run.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="rail selector"></div>
+    <div>
+      <h2>2 · Selector breakage</h2>
+      <div class="field"><div class="k">LOG</div><div class="v">ERROR gpt_bridge.session chat rotation exhausted after 2 retries: composer missing</div></div>
+      <div class="field"><div class="k">HTTP</div><div class="v">502 {"detail":"composer missing"}</div></div>
+      <div class="field"><div class="k">HEALTH</div><div class="v">logged_in: false if the composer is gone</div></div>
+      <p class="note">Same 502 detail for send did not start, empty reply, stalled generation, timeout, new chat did not show a composer. If the composer is still there, healthy stays true. Shot log: INFO gpt_bridge.browser saved failure screenshot</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="rail break"></div>
+    <div>
+      <h2>3 · Forced break</h2>
+      <div class="field"><div class="k">LOG</div><div class="v">WARNING gpt_bridge.session active chat marked broken; the next completion will rotate</div></div>
+      <div class="field"><div class="k">HTTP</div><div class="v">200 {"broken":true} then next completion must not be 502</div></div>
+      <div class="field"><div class="k">HEALTH</div><div class="v">forced_broken: true until that next send, then false</div></div>
+      <p class="note">Pass also needs INFO gpt_bridge.browser rotated to &lt;url&gt;. Leaving it broken with no following request is not a failed check.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="rail retry"></div>
+    <div>
+      <h2>4 · Retry cap</h2>
+      <div class="field"><div class="k">LOG</div><div class="v">ERROR gpt_bridge.session chat rotation exhausted after 2 retries: &lt;reason&gt;</div></div>
+      <div class="field"><div class="k">HTTP</div><div class="v">502 {"detail":"&lt;reason&gt;"}</div></div>
+      <div class="field"><div class="k">HEALTH</div><div class="v">status: ok</div></div>
+      <p class="note">Before that: WARNING gpt_bridge.session rotated to &lt;url&gt; after &lt;reason&gt;; resending full prompt (attempt 1) then attempt 2. The process does not exit. Account-limit reasons die the same way.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="rail bind"></div>
+    <div>
+      <h2>5 · Localhost bind</h2>
+      <div class="field"><div class="k">LOG</div><div class="v">no line in bridge.log</div></div>
+      <div class="field"><div class="k">HTTP</div><div class="v">none — connection refused</div></div>
+      <div class="field"><div class="k">HEALTH</div><div class="v">unreachable. On this host only, status: ok</div></div>
+      <p class="note">No bind field exists. A bad key on 127.0.0.1:8000 is a different stop: 401 {"detail":"invalid api key"}. /health has no auth, so it can still be 200.</p>
+    </div>
+  </section>
+
+  <footer>bridge.log format is timestamp, level, logger, message. Default bind is 127.0.0.1:8000. Do not read status: ok as remote reachability.</footer>
+</main>
+</body>
+</html>

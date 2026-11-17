@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>gpt-bridge account and chat card</title>
+<style>
+  :root {
+    --bg: #12161c;
+    --card: #1b212b;
+    --ink: #e7edf4;
+    --muted: #93a0b0;
+    --line: #2c3644;
+    --mono: "IBM Plex Mono", "ui-monospace", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+    --out: #e36b6b;
+    --in: #8fbfa8;
+    --chat: #7eb0e0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0c0f13; }
+  body { font-family: var(--sans); color: var(--ink); padding: 18px; }
+  main {
+    width: 504px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 16px 12px;
+  }
+  h1 { margin: 0; font-size: 17px; letter-spacing: 0.06em; font-weight: 650; }
+  .sub { margin: 4px 0 12px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .row {
+    display: grid;
+    grid-template-columns: 6px 1fr;
+    gap: 10px;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 9px 10px 9px 0;
+    margin-bottom: 8px;
+  }
+  .rail { border-radius: 10px 0 0 10px; }
+  .out { background: var(--out); }
+  .in { background: var(--in); }
+  .chat { background: var(--chat); }
+  h2 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
+  .field {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 6px;
+    margin-top: 4px;
+    align-items: start;
+  }
+  .k { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; padding-top: 2px; }
+  .v { font-family: var(--mono); font-size: 10.5px; line-height: 1.35; word-break: break-word; }
+  .note { margin: 4px 0 0; color: var(--muted); font-size: 10.5px; line-height: 1.35; }
+  footer { color: var(--muted); font-size: 10.5px; line-height: 1.4; margin-top: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ACCOUNT AND CHAT CARD</h1>
+    <p class="sub">You type the password in the window. Every curl uses Authorization: Bearer local. Proof is a later GET, not the click itself.</p>
+  </header>
+
+  <section class="row">
+    <div class="rail out"></div>
+    <div>
+      <h2>1 · Logout</h2>
+      <div class="field"><div class="k">CURL</div><div class="v">curl -s -X POST http://127.0.0.1:8000/v1/session/logout -H "Authorization: Bearer local"</div></div>
+      <div class="field"><div class="k">JSON</div><div class="v">200 {"browser":"ready","logged_in":false,"healthy":false,"forced_broken":false,"chat_url":"&lt;login page&gt;"}</div></div>
+      <div class="field"><div class="k">PROOF</div><div class="v">GET /v1/session → "logged_in": false</div></div>
+      <p class="note">Same fields on GET /health, plus "status": "ok". chat_url is the open page, not null.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="rail in"></div>
+    <div>
+      <h2>2 · Login</h2>
+      <div class="field"><div class="k">CURL</div><div class="v">curl -s -X POST http://127.0.0.1:8000/v1/session/login -H "Authorization: Bearer local"</div></div>
+      <div class="field"><div class="k">JSON</div><div class="v">200 status snapshot. "logged_in" is often still false. You have not signed in yet.</div></div>
+      <div class="field"><div class="k">PROOF</div><div class="v">After you sign in: GET /v1/session → "logged_in": true</div></div>
+      <p class="note">GET /health shows the same "logged_in": true and "status": "ok". The POST only opens the page.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="rail chat"></div>
+    <div>
+      <h2>3 · Chat switch</h2>
+      <div class="field"><div class="k">CURL</div><div class="v">curl -s -X POST http://127.0.0.1:8000/v1/chats/switch -H "Authorization: Bearer local" -H "Content-Type: application/json" -d '{"url":"https://chatgpt.com/c/your-chat-id"}'</div></div>
+      <div class="field"><div class="k">JSON</div><div class="v">200 {"chat_url":"https://chatgpt.com/c/your-chat-id"}</div></div>
+      <div class="field"><div class="k">PROOF</div><div class="v">GET /v1/session → "chat_url" equals that URL, and "logged_in": true</div></div>
+      <p class="note">New chat is POST /v1/chats/new and returns {"chat_url":"&lt;opened page&gt;"}. Proof is the same match on GET /v1/session. GET /v1/chats uses "current" for the same URL. A non-chatgpt.com link is 400.</p>
+    </div>
+  </section>
+
+  <footer>Proof curl: curl -s http://127.0.0.1:8000/v1/session -H "Authorization: Bearer local". /health needs no key. One window, one account, one chat.</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Merge this into ~/.kimi-code/config.toml. Do not delete your existing providers.
+# The model name can be anything. Capabilities are declared because this name
+# does not match a built-in prefix, and Kimi Code will not advertise tools otherwise.
+
+default_model = "gpt-subscription"
+
+[providers.gpt-subscription]
+type = "openai"
+base_url = "http://127.0.0.1:8000/v1"
+api_key = "local"
+
+[models."gpt-subscription"]
+provider = "gpt-subscription"
+model = "gpt-subscription"
+max_context_size = 128000
+capabilities = ["thinking", "tool_use"]
+display_name = "GPT subscription"

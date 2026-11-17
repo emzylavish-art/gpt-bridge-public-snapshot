@@ -1,0 +1,16 @@
+[project]
+name = "gpt-bridge"
+version = "0.1.0"
+description = "Local OpenAI-compatible bridge from a ChatGPT web session to Kimi Code"
+requires-python = ">=3.11"
+readme = "README.md"
+
+[project.scripts]
+gpt-bridge = "gpt_bridge.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
